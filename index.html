@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#e3ded9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Invoice Tracker">
+<link rel="manifest" href="./manifest.json">
+<title>Invoice Tracker</title>
+<style>
+  :root {
+    --cream: #e3ded9;
+    --taupe: #cfc5c3;
+    --taupe-dark: #b3a6a3;
+    --ink: #0d0d0d;
+    --muted: #6b6560;
+    --danger: #a94442;
+    --danger-bg: #f6e4e3;
+    --success: #3c6e47;
+    --success-bg: #e6efe8;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  header {
+    text-align: center;
+    padding: 28px 20px 18px;
+    border-bottom: 1.5px solid var(--taupe);
+  }
+  header h1 {
+    margin: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-weight: 300;
+    letter-spacing: 0.12em;
+    font-size: 22px;
+    text-transform: uppercase;
+  }
+  header p { margin: 6px 0 0; font-size: 12px; color: var(--muted); letter-spacing: 0.05em; }
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px 40px;
+    max-width: 480px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  .screen { display: none; flex-direction: column; gap: 16px; animation: fade .18s ease; }
+  .screen.active { display: flex; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: translateY(0);} }
+
+  .mode-btn {
+    background: #fff;
+    border: 1.5px solid var(--taupe);
+    border-radius: var(--radius);
+    padding: 22px 18px;
+    text-align: left;
+    font-size: 17px;
+    font-weight: bold;
+    color: var(--ink);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .mode-btn:active { background: var(--cream); }
+  .mode-btn .icon { font-size: 26px; }
+  .mode-btn small { display: block; font-weight: normal; color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+  .back-link {
+    background: none; border: none; color: var(--muted); font-size: 14px;
+    text-align: left; padding: 4px 0; cursor: pointer; align-self: flex-start;
+  }
+
+  .record-area { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 30px 0; }
+  #micBtn {
+    width: 140px; height: 140px; border-radius: 50%;
+    border: none; background: var(--taupe);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px; cursor: pointer; transition: background .15s, transform .1s;
+  }
+  #micBtn.recording { background: var(--danger); animation: pulse 1.4s infinite; }
+  #micBtn:active { transform: scale(0.96); }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(169,68,66,.4);} 70% { box-shadow: 0 0 0 22px rgba(169,68,66,0);} 100% { box-shadow: 0 0 0 0 rgba(169,68,66,0);} }
+  #recStatus { font-size: 14px; color: var(--muted); min-height: 20px; }
+  #recTimer { font-size: 28px; font-variant-numeric: tabular-nums; }
+
+  .spinner {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid var(--taupe); border-top-color: var(--ink);
+    animation: spin .8s linear infinite; margin: 20px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  label { font-size: 13px; font-weight: bold; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; display: block; }
+  .field { display: flex; flex-direction: column; }
+  input, select {
+    font-size: 16px; padding: 12px 14px; border-radius: 10px;
+    border: 1.5px solid var(--taupe); background: #fff; color: var(--ink);
+    font-family: inherit; width: 100%;
+  }
+  input:focus, select:focus { outline: 2px solid var(--taupe-dark); }
+
+  .transcript-box {
+    background: #fff; border: 1px solid var(--taupe); border-radius: 10px;
+    padding: 10px 12px; font-size: 13px; color: var(--muted); font-style: italic;
+  }
+
+  .btn {
+    padding: 15px 18px; border-radius: 10px; border: none;
+    font-size: 16px; font-weight: bold; cursor: pointer; text-align: center;
+  }
+  .btn-primary { background: var(--ink); color: #fff; }
+  .btn-primary:active { opacity: .85; }
+  .btn-secondary { background: #fff; border: 1.5px solid var(--taupe); color: var(--ink); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn:disabled { opacity: .5; }
+
+  .checkbox-row { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .checkbox-row input { width: auto; }
+
+  .banner { border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+  .banner.error { background: var(--danger-bg); color: var(--danger); }
+  .banner.success { background: var(--success-bg); color: var(--success); }
+  .banner ul { margin: 8px 0 0; padding-left: 18px; }
+
+  .result-icon { font-size: 48px; text-align: center; }
+  .result-title { font-size: 20px; font-weight: bold; text-align: center; }
+  .result-details { background: #fff; border: 1px solid var(--taupe); border-radius: 10px; padding: 14px 16px; font-size: 14px; }
+  .result-details div { display: flex; justify-content: space-between; padding: 4px 0; }
+  .result-details div span:first-child { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Dawn Decorates</h1>
+  <p>Invoice Tracker</p>
+</header>
+
+<main>
+
+  <!-- SCREEN: mode select -->
+  <section class="screen active" id="screen-mode">
+    <button class="mode-btn" data-mode="log_time">
+      <span class="icon">&#9200;</span>
+      <span>Log Time<small>Record billable hours for an existing client</small></span>
+    </button>
+    <button class="mode-btn" data-mode="new_account">
+      <span class="icon">&#128100;</span>
+      <span>New Client<small>Create a new client folder</small></span>
+    </button>
+    <button class="mode-btn" data-mode="generate_invoice">
+      <span class="icon">&#128196;</span>
+      <span>Generate Invoice<small>Create this month's invoice for a client</small></span>
+    </button>
+  </section>
+
+  <!-- SCREEN: record -->
+  <section class="screen" id="screen-record">
+    <button class="back-link" data-back="screen-mode">&larr; Back</button>
+    <div class="record-area">
+      <button id="micBtn">&#127908;</button>
+      <div id="recTimer">0:00</div>
+      <div id="recStatus">Tap to start recording</div>
+    </div>
+    <button class="btn btn-secondary" id="skipRecordBtn">Skip recording &mdash; enter manually</button>
+  </section>
+
+  <!-- SCREEN: processing -->
+  <section class="screen" id="screen-processing">
+    <div class="spinner"></div>
+    <div id="processingStatus" style="text-align:center; color: var(--muted);">Transcribing&hellip;</div>
+  </section>
+
+  <!-- SCREEN: confirm -->
+  <section class="screen" id="screen-confirm">
+    <button class="back-link" data-back="screen-mode">&larr; Start over</button>
+    <div id="confirmBanner"></div>
+    <div class="transcript-box" id="transcriptBox" style="display:none;"></div>
+
+    <div class="field" data-field="client">
+      <label>Client</label>
+      <input type="text" id="f_client" placeholder="Client name">
+    </div>
+    <div class="field" data-field="start">
+      <label>Start Time</label>
+      <input type="text" id="f_start" placeholder="e.g. 9:00 AM">
+    </div>
+    <div class="field" data-field="finish">
+      <label>Finish Time</label>
+      <input type="text" id="f_finish" placeholder="e.g. 11:30 AM">
+    </div>
+    <div class="field" data-field="task">
+      <label>Task</label>
+      <input type="text" id="f_task" placeholder="What did you work on?">
+    </div>
+    <div class="field" data-field="rate">
+      <label>Rate ($/hr)</label>
+      <input type="number" id="f_rate" placeholder="75">
+    </div>
+    <div class="field" data-field="monthYear">
+      <label>Month (optional)</label>
+      <input type="text" id="f_monthYear" placeholder="Defaults to current month">
+    </div>
+    <div class="checkbox-row" data-field="confirmNew">
+      <input type="checkbox" id="f_confirmNew">
+      <label style="text-transform:none; font-weight:normal;" for="f_confirmNew">Create anyway (name is close to an existing client)</label>
+    </div>
+
+    <button class="btn btn-primary" id="submitBtn">Confirm &amp; Submit</button>
+  </section>
+
+  <!-- SCREEN: result -->
+  <section class="screen" id="screen-result">
+    <div class="result-icon" id="resultIcon"></div>
+    <div class="result-title" id="resultTitle"></div>
+    <div class="result-details" id="resultDetails"></div>
+    <button class="btn btn-primary" id="doneBtn">Log Another</button>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var BASE = 'https://jhw3.app.n8n.cloud/webhook';
+  var AUTH_HEADER = 'X-Invoice-Tracker-Key';
+  var AUTH_VALUE = 'ednSxp2nu5oo1NczoIw00Fx5cowY9kOpVKdvHgTWodY';
+
+  var ENDPOINTS = {
+    transcribe: BASE + '/invoice-tracker-transcribe',
+    log_time: BASE + '/invoice-tracker-log-time',
+    new_account: BASE + '/invoice-tracker-new-account',
+    generate_invoice: BASE + '/invoice-tracker-generate-invoice'
+  };
+
+  var FIELDS_BY_MODE = {
+    log_time: ['client', 'start', 'finish', 'task', 'rate'],
+    new_account: ['client', 'confirmNew'],
+    generate_invoice: ['client', 'monthYear']
+  };
+
+  var state = { mode: null, mediaRecorder: null, chunks: [], timerInterval: null, seconds: 0 };
+
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+  }
+
+  document.querySelectorAll('.back-link').forEach(function (btn) {
+    btn.addEventListener('click', function () { show(btn.getAttribute('data-back')); });
+  });
+
+  document.querySelectorAll('.mode-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      state.mode = btn.getAttribute('data-mode');
+      setupConfirmFieldsVisibility();
+      resetRecordScreen();
+      show('screen-record');
+    });
+  });
+
+  function resetRecordScreen() {
+    state.seconds = 0;
+    document.getElementById('recTimer').textContent = '0:00';
+    document.getElementById('recStatus').textContent = 'Tap to start recording';
+    document.getElementById('micBtn').classList.remove('recording');
+  }
+
+  function setupConfirmFieldsVisibility() {
+    var visible = FIELDS_BY_MODE[state.mode];
+    document.querySelectorAll('#screen-confirm [data-field]').forEach(function (el) {
+      var f = el.getAttribute('data-field');
+      el.style.display = visible.indexOf(f) === -1 ? 'none' : '';
+    });
+  }
+
+  function clearConfirmFields() {
+    ['client', 'start', 'finish', 'task', 'rate', 'monthYear'].forEach(function (f) {
+      var el = document.getElementById('f_' + f);
+      if (el) el.value = '';
+    });
+    document.getElementById('f_confirmNew').checked = false;
+  }
+
+  // ---- Recording ----
+  document.getElementById('micBtn').addEventListener('click', function () {
+    if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  });
+
+  function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      var mimeType = '';
+      var candidates = ['audio/webm', 'audio/mp4', 'audio/ogg'];
+      for (var i = 0; i < candidates.length; i++) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(candidates[i])) {
+          mimeType = candidates[i];
+          break;
+        }
+      }
+      state.chunks = [];
+      state.mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType: mimeType }) : new MediaRecorder(stream);
+      state.mediaRecorder.addEventListener('dataavailable', function (e) {
+        if (e.data && e.data.size > 0) state.chunks.push(e.data);
+      });
+      state.mediaRecorder.addEventListener('stop', function () {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        var blob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || 'audio/webm' });
+        handleRecordingComplete(blob);
+      });
+      state.mediaRecorder.start();
+      document.getElementById('micBtn').classList.add('recording');
+      document.getElementById('recStatus').textContent = 'Recording&hellip; tap to stop';
+      state.seconds = 0;
+      state.timerInterval = setInterval(function () {
+        state.seconds++;
+        var m = Math.floor(state.seconds / 60);
+        var s = state.seconds % 60;
+        document.getElementById('recTimer').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+      }, 1000);
+    }).catch(function (err) {
+      document.getElementById('recStatus').textContent = 'Microphone access denied. Use "enter manually" below.';
+    });
+  }
+
+  function stopRecording() {
+    if (state.timerInterval) clearInterval(state.timerInterval);
+    document.getElementById('micBtn').classList.remove('recording');
+    document.getElementById('recStatus').textContent = 'Processing&hellip;';
+    if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+      state.mediaRecorder.stop();
+    }
+  }
+
+  function handleRecordingComplete(blob) {
+    show('screen-processing');
+    document.getElementById('processingStatus').textContent = 'Transcribing…';
+    var form = new FormData();
+    form.append('mode', state.mode);
+    form.append('audio', blob, 'recording.webm');
+
+    fetch(ENDPOINTS.transcribe, {
+      method: 'POST',
+      headers: buildHeaders(false),
+      body: form
+    }).then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+      .then(function (result) {
+        clearConfirmFields();
+        var fields = (result.data && result.data.fields) || {};
+        document.getElementById('f_client').value = fields.client || '';
+        document.getElementById('f_start').value = fields.start || '';
+        document.getElementById('f_finish').value = fields.finish || '';
+        document.getElementById('f_task').value = fields.task || '';
+        document.getElementById('f_rate').value = fields.rate || '';
+        document.getElementById('f_monthYear').value = fields.monthYear || '';
+        var tbox = document.getElementById('transcriptBox');
+        if (result.data && result.data.transcript) {
+          tbox.style.display = '';
+          tbox.textContent = '“' + result.data.transcript + '”';
+        } else {
+          tbox.style.display = 'none';
+        }
+        document.getElementById('confirmBanner').innerHTML = '';
+        show('screen-confirm');
+      })
+      .catch(function (err) {
+        clearConfirmFields();
+        document.getElementById('transcriptBox').style.display = 'none';
+        document.getElementById('confirmBanner').innerHTML =
+          '<div class="banner error">Could not transcribe that recording. You can enter the details manually below, or go back and try recording again.</div>';
+        show('screen-confirm');
+      });
+  }
+
+  document.getElementById('skipRecordBtn').addEventListener('click', function () {
+    clearConfirmFields();
+    document.getElementById('transcriptBox').style.display = 'none';
+    document.getElementById('confirmBanner').innerHTML = '';
+    show('screen-confirm');
+  });
+
+  function buildHeaders(json) {
+    var h = {};
+    h[AUTH_HEADER] = AUTH_VALUE;
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+  }
+
+  // ---- Submit ----
+  document.getElementById('submitBtn').addEventListener('click', function () {
+    var payload = {};
+    if (state.mode === 'log_time') {
+      payload = {
+        client: document.getElementById('f_client').value.trim(),
+        start: document.getElementById('f_start').value.trim(),
+        finish: document.getElementById('f_finish').value.trim(),
+        task: document.getElementById('f_task').value.trim(),
+        rate: Number(document.getElementById('f_rate').value) || 0
+      };
+    } else if (state.mode === 'new_account') {
+      payload = {
+        client: document.getElementById('f_client').value.trim(),
+        confirmNew: document.getElementById('f_confirmNew').checked
+      };
+    } else if (state.mode === 'generate_invoice') {
+      payload = {
+        client: document.getElementById('f_client').value.trim(),
+        monthYear: document.getElementById('f_monthYear').value.trim()
+      };
+    }
+
+    if (!payload.client) {
+      document.getElementById('confirmBanner').innerHTML = '<div class="banner error">Client name is required.</div>';
+      return;
+    }
+
+    var btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    fetch(ENDPOINTS[state.mode], {
+      method: 'POST',
+      headers: buildHeaders(true),
+      body: JSON.stringify(payload)
+    }).then(function (res) { return res.json().then(function (data) { return { ok: res.ok, status: res.status, data: data }; }); })
+      .then(function (result) {
+        btn.disabled = false;
+        btn.textContent = 'Confirm & Submit';
+        if (result.ok) {
+          showResult(true, result.data);
+        } else if (result.data && result.data.status === 'possible_duplicate') {
+          document.getElementById('f_confirmNew').checked = false;
+          document.getElementById('confirmBanner').innerHTML =
+            '<div class="banner error">' + escapeHtml(result.data.error) + '</div>';
+        } else {
+          document.getElementById('confirmBanner').innerHTML =
+            '<div class="banner error">' + escapeHtml((result.data && result.data.error) || 'Something went wrong.') + '</div>';
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = 'Confirm & Submit';
+        document.getElementById('confirmBanner').innerHTML = '<div class="banner error">Network error — check your connection and try again.</div>';
+      });
+  });
+
+  function escapeHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = String(s == null ? '' : s);
+    return d.innerHTML;
+  }
+
+  function showResult(success, data) {
+    document.getElementById('resultIcon').textContent = success ? '✅' : '⚠️';
+    var titles = {
+      log_time: success ? 'Time Logged' : 'Could Not Log Time',
+      new_account: success ? 'Client Created' : 'Could Not Create Client',
+      generate_invoice: success ? 'Invoice Generated' : 'Could Not Generate Invoice'
+    };
+    document.getElementById('resultTitle').textContent = titles[state.mode] || 'Done';
+
+    var details = '';
+    if (state.mode === 'log_time' && success) {
+      details = row('Client', data.client) + row('Month', data.month) + row('Task', data.task) + row('Rate', '$' + data.rate + '/hr') + row('Row', data.row);
+    } else if (state.mode === 'new_account' && success) {
+      details = row('Client', data.client) + row('Status', 'Folder created');
+    } else if (state.mode === 'generate_invoice' && success) {
+      details = row('Client', data.client) + row('Month', data.month) + row('Tasks', data.totalTasks) + row('Hours', data.billableHours) + row('Total Due', data.totalAmountDue);
+    }
+    document.getElementById('resultDetails').innerHTML = details;
+    show('screen-result');
+  }
+
+  function row(label, value) {
+    return '<div><span>' + escapeHtml(label) + '</span><span>' + escapeHtml(value) + '</span></div>';
+  }
+
+  document.getElementById('doneBtn').addEventListener('click', function () {
+    state.mode = null;
+    show('screen-mode');
+  });
+
+  // Register minimal service worker for installability, ignore failures silently
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
