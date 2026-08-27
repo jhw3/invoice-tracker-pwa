@@ -198,6 +198,10 @@
       <label>Client</label>
       <input type="text" id="f_client" placeholder="Client name">
     </div>
+    <div class="field" data-field="date">
+      <label>Date</label>
+      <input type="date" id="f_date">
+    </div>
     <div class="field" data-field="start">
       <label>Start Time</label>
       <input type="text" id="f_start" placeholder="e.g. 9:00 AM">
@@ -252,7 +256,7 @@
   };
 
   var FIELDS_BY_MODE = {
-    log_time: ['client', 'start', 'finish', 'task', 'rate'],
+    log_time: ['client', 'date', 'start', 'finish', 'task', 'rate'],
     new_account: ['client', 'confirmNew'],
     generate_invoice: ['client', 'monthYear']
   };
@@ -298,6 +302,21 @@
       if (el) el.value = '';
     });
     document.getElementById('f_confirmNew').checked = false;
+    document.getElementById('f_date').value = todayIsoDate();
+  }
+
+  function todayIsoDate() {
+    var d = new Date();
+    var m = String(d.getMonth() + 1).padStart(2, '0');
+    var day = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + m + '-' + day;
+  }
+
+  function isoToUsDate(iso) {
+    if (!iso) return '';
+    var parts = iso.split('-');
+    if (parts.length !== 3) return iso;
+    return Number(parts[1]) + '/' + Number(parts[2]) + '/' + parts[0];
   }
 
   // ---- Recording ----
@@ -369,6 +388,7 @@
         clearConfirmFields();
         var fields = (result.data && result.data.fields) || {};
         document.getElementById('f_client').value = fields.client || '';
+        document.getElementById('f_date').value = fields.date || todayIsoDate();
         document.getElementById('f_start').value = fields.start || '';
         document.getElementById('f_finish').value = fields.finish || '';
         document.getElementById('f_task').value = fields.task || '';
@@ -413,6 +433,7 @@
     if (state.mode === 'log_time') {
       payload = {
         client: document.getElementById('f_client').value.trim(),
+        date: isoToUsDate(document.getElementById('f_date').value),
         start: document.getElementById('f_start').value.trim(),
         finish: document.getElementById('f_finish').value.trim(),
         task: document.getElementById('f_task').value.trim(),
@@ -482,7 +503,7 @@
 
     var details = '';
     if (state.mode === 'log_time' && success) {
-      details = row('Client', data.client) + row('Month', data.month) + row('Task', data.task) + row('Rate', '$' + data.rate + '/hr') + row('Row', data.row);
+      details = row('Client', data.client) + row('Date', data.date) + row('Task', data.task) + row('Rate', '$' + data.rate + '/hr') + row('Row', data.row);
     } else if (state.mode === 'new_account' && success) {
       details = row('Client', data.client) + row('Status', 'Folder created');
     } else if (state.mode === 'generate_invoice' && success) {
